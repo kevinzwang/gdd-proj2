@@ -1,6 +1,8 @@
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.Tilemaps;
 
 public class PlayerController : MonoBehaviour
@@ -19,7 +21,15 @@ public class PlayerController : MonoBehaviour
 
     [SerializeField]
     [Tooltip("The starting energy")]
-    private int startEnergy = 5;
+    private int startEnergy = 8;
+
+    [SerializeField]
+    [Tooltip("The amount of energy a health item gives")]
+    private int energyPerItem = 5;
+
+    [SerializeField]
+    [Tooltip("Energy level text UI")]
+    private TMP_Text energyText;
 
     int energy;
     #endregion
@@ -30,12 +40,13 @@ public class PlayerController : MonoBehaviour
     {
         playerRigidbody = GetComponent<Rigidbody2D>();
         firePositions = new HashSet<Vector3Int>();
-        energy = startEnergy;
+        energy = startEnergy + 1;
     }
 
     private void Start()
     {
         AddFire();
+        energyText.text = energy.ToString();
     }
 
     private void Update()
@@ -57,6 +68,25 @@ public class PlayerController : MonoBehaviour
             transform.position = newPostion;
 
             AddFire();
+
+            RaycastHit2D[] hits = Physics2D.RaycastAll(transform.position, Vector2.zero);
+            foreach (RaycastHit2D hit in hits) {
+                if (hit.collider.CompareTag("Health")) {
+                    energy += energyPerItem;
+                    Destroy(hit.collider.gameObject);
+                } else if (hit.collider.CompareTag("Goal")) {
+                    Destroy(this.gameObject);
+                    SceneManager.LoadScene("WinScene");
+                    return;
+                }
+            }
+
+            if (energy <= 0) {
+                Destroy(this.gameObject);
+                SceneManager.LoadScene("LoseScene");
+            }
+
+            energyText.text = energy.ToString();
         }
     }
 
