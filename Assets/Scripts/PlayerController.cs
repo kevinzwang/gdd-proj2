@@ -31,7 +31,11 @@ public class PlayerController : MonoBehaviour
     [Tooltip("Energy level text UI")]
     private TMP_Text energyText;
 
+
+
     int energy;
+
+    bool moving;
     #endregion
 
 
@@ -47,46 +51,28 @@ public class PlayerController : MonoBehaviour
     {
         AddFire();
         energyText.text = energy.ToString();
+        moving = false;
     }
 
     private void Update()
     {
         Vector3 movementVector = new Vector3(0, 0, 0);
-        if (Input.GetKeyDown(KeyCode.W)) {
-            movementVector.y = 1;
-        } else if (Input.GetKeyDown(KeyCode.S)) {
-            movementVector.y = -1;
-        } else if (Input.GetKeyDown(KeyCode.A)) {
-            movementVector.x = -1;
-        } else if (Input.GetKeyDown(KeyCode.D)) {
-            movementVector.x = 1;
+        if (!moving) {
+            if (Input.GetKeyDown(KeyCode.W)) {
+                movementVector.y = 1;
+            } else if (Input.GetKeyDown(KeyCode.S)) {
+                movementVector.y = -1;
+            } else if (Input.GetKeyDown(KeyCode.A)) {
+                movementVector.x = -1;
+            } else if (Input.GetKeyDown(KeyCode.D)) {
+                movementVector.x = 1;
+            }
         }
 
         Vector3 newPostion = transform.position + movementVector;
         Vector3Int cellPosition = walls.WorldToCell(newPostion);
         if (movementVector != Vector3.zero && !walls.HasTile(cellPosition)) {
-            transform.position = newPostion;
-
-            AddFire();
-
-            RaycastHit2D[] hits = Physics2D.RaycastAll(transform.position, Vector2.zero);
-            foreach (RaycastHit2D hit in hits) {
-                if (hit.collider.CompareTag("Health")) {
-                    energy += energyPerItem;
-                    Destroy(hit.collider.gameObject);
-                } else if (hit.collider.CompareTag("Goal")) {
-                    Destroy(this.gameObject);
-                    SceneManager.LoadScene("WinScene");
-                    return;
-                }
-            }
-
-            if (energy <= 0) {
-                Destroy(this.gameObject);
-                SceneManager.LoadScene("LoseScene");
-            }
-
-            energyText.text = energy.ToString();
+            StartCoroutine(Move(movementVector));
         }
     }
 
@@ -98,6 +84,45 @@ public class PlayerController : MonoBehaviour
             Instantiate(firePrefab, transform.position, Quaternion.identity);
             energy--;
         }
+    }
+
+    IEnumerator Move(Vector3 movementVector)
+    {
+        moving = true;
+        Vector3 oldPosition = transform.position;
+        Vector3 newPosition = transform.position + movementVector;
+        
+        float elapsedTime = 0;
+        float animationTime = 0.1f;
+        while (elapsedTime < animationTime) {
+            transform.position = Vector3.Lerp(oldPosition, newPosition, elapsedTime / animationTime);
+            elapsedTime += Time.deltaTime;
+            yield return null;
+        }
+
+        transform.position = newPosition;
+
+        RaycastHit2D[] hits = Physics2D.RaycastAll(transform.position, Vector2.zero);
+        foreach (RaycastHit2D hit in hits) {
+            if (hit.collider.CompareTag("Health")) {
+                energy += energyPerItem;
+                Destroy(hit.collider.gameObject);
+            } else if (hit.collider.CompareTag("Goal")) {
+                Destroy(this.gameObject);
+                SceneManager.LoadScene("WinScene");
+            }
+        }
+
+        AddFire();
+
+        if (energy == 0) {
+            Destroy(this.gameObject);
+            SceneManager.LoadScene("LoseScene");
+        }
+
+        energyText.text = energy.ToString();
+
+        moving = false;
     }
     #endregion
 }
