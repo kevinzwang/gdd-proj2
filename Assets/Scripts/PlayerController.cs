@@ -102,6 +102,7 @@ public class PlayerController : MonoBehaviour
 
         transform.position = newPosition;
 
+        bool won = false;
         RaycastHit2D[] hits = Physics2D.RaycastAll(transform.position, Vector2.zero);
         foreach (RaycastHit2D hit in hits) {
             if (hit.collider.CompareTag("Health")) {
@@ -109,15 +110,18 @@ public class PlayerController : MonoBehaviour
                 Destroy(hit.collider.gameObject);
             } else if (hit.collider.CompareTag("Goal")) {
                 Destroy(this.gameObject);
-                SceneManager.LoadScene("WinScene");
+                GameObject gm = GameObject.FindWithTag("GameController");
+                gm.GetComponent<GameManager>().WinGame();
+                won = true;   
             }
         }
 
         AddFire();
 
-        if (energy == 0) {
+        if (energy == 0 && !won) {
             Destroy(this.gameObject);
-            SceneManager.LoadScene("LoseScene");
+            GameObject gm = GameObject.FindWithTag("GameController");
+            gm.GetComponent<GameManager>().LoseGame();
         }
 
         energyText.text = energy.ToString();
